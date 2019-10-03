@@ -2,6 +2,28 @@ import math
 import os
 import cv2
 import numpy as np
+import sys
+sys.path.append(os.getcwd())
+
+def load_numpy_file(file_path):
+    return np.load(file_path)
+
+def draw_numpy_file(file_path, x_offset=0, y_offset=6, scale=100):
+    track = np.load(file_path)
+    center_line = []
+    inner_line = []
+    outer_line = []
+
+    for i, row in enumerate(track, start=0):
+        center_line.append(((row[0] + x_offset) * scale, (row[1] + y_offset)*scale))
+        inner_line.append(((row[2] + x_offset)*scale, (row[3] + y_offset)*scale))
+        outer_line.append(((row[4] + x_offset)*scale, (row[5] + y_offset)*scale))
+
+    tr_image = np.zeros((1000, 1000, 3), np.uint8)
+    cv2.drawContours(tr_image, [np.array(inner_line, dtype=int, copy=False)], -1, (255, 0, 0), 1)
+    cv2.drawContours(tr_image, [np.array(outer_line, dtype=int, copy=False)], -1, (255, 0, 0), 1)
+    cv2.drawContours(tr_image, [np.array(center_line, dtype=int, copy=False)], -1, (12, 215, 255), 1)
+    cv2.imshow("np-track", tr_image)
 
 
 def get_perpendicular_coordinates(p1, p2, length):
@@ -62,6 +84,7 @@ def detect_contour(img, desired_points=None):
 
 
 image = cv2.imread(os.path.join(os.curdir, 'shapes', 'track-shape.png'))
+# image = cv2.imread(os.path.join(os.curdir, 'shapes', 'sample-shape-2.png'))
 
 center_line = detect_contour(image, desired_points=200)
 print('smoothed contour length: {}'.format(len(center_line)))
@@ -75,4 +98,14 @@ cv2.drawContours(blank_image, [inner], -1, (255, 0, 0), 4)
 cv2.drawContours(blank_image, [outer], -1, (255, 0, 0), 4)
 cv2.drawContours(blank_image, [center_line], -1, (12, 215, 255), 4)
 cv2.imshow("Track", blank_image)
+
+
+
+draw_numpy_file(os.path.join('numpy-files', 'Canada_Eval-2.npy'))
+
+
+
+
+
 cv2.waitKey(0)
+cv2.destroyAllWindows()
