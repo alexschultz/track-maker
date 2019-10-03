@@ -3,10 +3,27 @@ import os
 import cv2
 import numpy as np
 import sys
+
 sys.path.append(os.getcwd())
+
 
 def load_numpy_file(file_path):
     return np.load(file_path)
+
+
+def draw_contours(center, inner, outer, shape, scale_factor=1):
+    # TODO: determine shape based on size of outer ndarray
+    # TODO: apply scale_factor in separate function which takes the ndarray and returns a scaled ndarray,
+    #  then use that in the draw_numpy_file function as well
+    blank_image = np.zeros(shape, np.uint8)
+
+    cv2.drawContours(blank_image, [inner], -1, (255, 0, 0), 1)
+    cv2.drawContours(blank_image, [outer], -1, (255, 0, 0), 1)
+    cv2.drawContours(blank_image, [center], -1, (12, 215, 255), 1)
+    cv2.imshow("Track", blank_image)
+
+    pass
+
 
 def draw_numpy_file(file_path, x_offset=0, y_offset=6, scale=100):
     track = np.load(file_path)
@@ -15,9 +32,9 @@ def draw_numpy_file(file_path, x_offset=0, y_offset=6, scale=100):
     outer_line = []
 
     for i, row in enumerate(track, start=0):
-        center_line.append(((row[0] + x_offset) * scale, (row[1] + y_offset)*scale))
-        inner_line.append(((row[2] + x_offset)*scale, (row[3] + y_offset)*scale))
-        outer_line.append(((row[4] + x_offset)*scale, (row[5] + y_offset)*scale))
+        center_line.append(((row[0] + x_offset) * scale, (row[1] + y_offset) * scale))
+        inner_line.append(((row[2] + x_offset) * scale, (row[3] + y_offset) * scale))
+        outer_line.append(((row[4] + x_offset) * scale, (row[5] + y_offset) * scale))
 
     tr_image = np.zeros((1000, 1000, 3), np.uint8)
     cv2.drawContours(tr_image, [np.array(inner_line, dtype=int, copy=False)], -1, (255, 0, 0), 1)
@@ -30,7 +47,7 @@ def get_perpendicular_coordinates(p1, p2, length):
     vX = p2[0] - p1[0]
     vY = p2[1] - p1[1]
     if (vX == 0 or vY == 0):
-        return 0, 0, 0, 0
+        return None, None
     mag = math.sqrt(vX * vX + vY * vY)
     vX = vX / mag
     vY = vY / mag
@@ -44,7 +61,7 @@ def get_perpendicular_coordinates(p1, p2, length):
     return (int(cX), int(cY)), (int(dX), int(dY))
 
 
-def calculate_boundaries(centerline, track_width=10):
+def calculate_boundaries(centerline, track_width=30):
     inner = []
     outer = []
     cl = np.asarray(centerline)
@@ -53,6 +70,8 @@ def calculate_boundaries(centerline, track_width=10):
             p1 = np.asarray(centerline[i - 1][0])
             p2 = np.asarray(centerline[i][0])
             inner_point, outer_point = get_perpendicular_coordinates(p1, p2, track_width)
+            if inner_point is None or outer_point is None:
+                continue
             inner.append(inner_point)
             outer.append(outer_point)
 
@@ -61,7 +80,7 @@ def calculate_boundaries(centerline, track_width=10):
 
 def detect_contour(img, desired_points=None):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
     edged = cv2.Canny(blurred, 30, 200)
 
     cnts, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -83,29 +102,16 @@ def detect_contour(img, desired_points=None):
             return np.array(approx, dtype=int, copy=False)
 
 
-image = cv2.imread(os.path.join(os.curdir, 'shapes', 'track-shape.png'))
-# image = cv2.imread(os.path.join(os.curdir, 'shapes', 'sample-shape-2.png'))
+# image = cv2.imread(os.path.join(os.curdir, 'shapes', 'track-shape.png'))
+image = cv2.imread(os.path.join(os.curdir, 'shapes', 'sample-shape-2.png'))
 
-center_line = detect_contour(image, desired_points=200)
-print('smoothed contour length: {}'.format(len(center_line)))
-inner, outer = calculate_boundaries(center_line, 30)
+center = detect_contour(image, desired_points=200)
+print('smoothed contour length: {}'.format(len(center)))
+inner, outer = calculate_boundaries(center, 10)
 
-shape = image.shape
-
-blank_image = np.zeros(shape, np.uint8)
-
-cv2.drawContours(blank_image, [inner], -1, (255, 0, 0), 4)
-cv2.drawContours(blank_image, [outer], -1, (255, 0, 0), 4)
-cv2.drawContours(blank_image, [center_line], -1, (12, 215, 255), 4)
-cv2.imshow("Track", blank_image)
-
-
+draw_contours(center, inner, outer, image.shape, scale_factor=1)
 
 draw_numpy_file(os.path.join('numpy-files', 'Canada_Eval-2.npy'))
-
-
-
-
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
