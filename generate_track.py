@@ -102,10 +102,11 @@ def detect_contour(img, desired_points=None):
             return np.array(approx, dtype=int, copy=False)
 
 
-# image = cv2.imread(os.path.join(os.curdir, 'shapes', 'track-shape.png'))
-image = cv2.imread(os.path.join(os.curdir, 'shapes', 'sample-shape-2.png'))
+image = cv2.imread(os.path.join(os.curdir, 'shapes', 'track-shape.png'))
+# image = cv2.imread(os.path.join(os.curdir, 'shapes', 'sample-shape-2.png'))
 
-center = detect_contour(image, desired_points=200)
+
+center = detect_contour(image, desired_points=150)
 print('smoothed contour length: {}'.format(len(center)))
 inner, outer = calculate_boundaries(center, 10)
 
